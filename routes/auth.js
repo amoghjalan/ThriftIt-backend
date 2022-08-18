@@ -1,55 +1,53 @@
-const router = require("express").Router();
-const User = require("../modals/User");
-const CryptoJS = require("crypto-js");
-const jwt = require("jsonwebtoken");
-//REGISTER
+const express = require('express');
+const User = require('../models/User');
+const CryptoJS = require('crypto-js');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
-router.post("/register", async (req, res) => {
-  const newUser = new User({
-    username: req.body.username,
-    email: req.body.email,
-    password: CryptoJS.AES.encrypt(
-      req.body.password,
-      process.env.PASS_SEC
-    ).toString()
-  });
+const router = express.Router();
 
+//register
+router.post('/register', async (req, res) => {
   try {
+    const hashedPassword = await bcrypt.hash(req.body.password, 10);
+
+    const newUser = new User({
+      username: req.body.username,
+      email: req.body.email,
+      password: hashedPassword,
+    });
+
     const savedUser = await newUser.save();
-    res.status(200).json(savedUser);
+    res.status(201).json(savedUser);
   } catch (error) {
+    console.log(error);
     res.status(500).json(error);
   }
 });
 
-router.post("/login", async (res, req) => {
+//login
+router.post('/login', async (req, res) => {
   try {
     const user = await User.findOne({ username: req.body.username });
+    !user && res.status(400).json('wrong credentials');
 
-    !user && res.status(401).json("Wrong Credentials");
-    const hashedPassword = CryptoJS.decrypt(
-      user.password,
-      process.env.PASS_SEC
+    const isPasswordMatched = await bcrypt.compare(
+      req.body.password,
+      user.password
     );
-    const originalPassword = hashedPassword.toString(CryptoJS.enc.Utf8);
+    !isPasswordMatched && res.status(400).json('wrong credentials');
 
-    originalPassword !== req.body.password &&
-      res.status(401).json("Wrong Credentials");
-
-    const accessToken = jwt.sign(
-      {
-        id: user._id,
-        isAdmin: user.isAdmin
-      },
-      process.env.JWT_SEC_KEY,
-      { expiresIn: "3d" }
+    const token = jwt.sign(
+      { id: user._id, isAdmin: user.isAdmin },
+      process.env.PWD_SECRET,
+      { expiresIn: '3d' }
     );
 
-    const { password, ...others } = user._doc;
+    const { password, ...rest } = user._doc;
 
-    res.status(200).json({ ...others, accessToken });
-  } catch (err) {
-    res.status(500).json(err);
+    res.status(200).json({ ...rest, token });
+  } catch (error) {
+    res.status(500).json(error);
   }
 });
 

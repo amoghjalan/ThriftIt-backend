@@ -1,67 +1,68 @@
-const router = require("express").Router();
+const express = require('express');
+const CryptoJS = require('crypto-js');
+const Cart = require('../models/Cart');
 const {
-  verifyToken,
-  verifyAdminToken,
-  verifyTokenAndAuthentication
-} = require("./verifyToken");
-const Cart = require("../modals/Cart");
+  verifyAuth,
+  verifyTokenAndAdmin,
+  verifyTokenAndAuthorize,
+} = require('./verifyAuth');
 
-// CREATE
-router.post("/", verifyToken, async (req, res) => {
+const router = express.Router();
+
+//create
+router.post('/', verifyAuth, async (req, res) => {
   const newCart = new Cart(req.body);
 
   try {
     const savedCart = await newCart.save();
+
     res.status(200).json(savedCart);
   } catch (error) {
-    res.status(500).json(error);
+    res.status(500).send(error);
   }
 });
 
-// UPDATE
-router.put("/:id", verifyTokenAndAuthentication, async (req, res) => {
+//update
+router.put('/:id', verifyTokenAndAuthorize, async (req, res) => {
   try {
     const updatedCart = await Cart.findByIdAndUpdate(
       req.params.id,
       {
-        $set: req.body
+        $set: req.body,
       },
       { new: true }
     );
     res.status(200).json(updatedCart);
   } catch (error) {
-    res.status(500).json(err);
+    res.status(500).json(error);
   }
 });
 
-// DELETE
-
-router.delete("/:id", verifyTokenAndAuthentication, async (req, res) => {
+//delete
+router.delete('/:id', verifyTokenAndAuthorize, async (req, res) => {
   try {
     await Cart.findByIdAndDelete(req.params.id);
-    res.status(200).json("Cart Deleted");
+    res.status(200).json('Cart deleted successfully');
   } catch (error) {
     res.status(500).json(error);
   }
 });
 
-// GET USER CART
-
-router.get("/find/:userId", verifyTokenAndAuthentication, async (req, res) => {
+//get
+router.get('/find/:userId', verifyTokenAndAuthorize, async (req, res) => {
   try {
-    const cart = await Cart.find({ userId: req.params.userId });
+    const cart = await Cart.findOne({ userId: req.params.userId });
     res.status(200).json(cart);
   } catch (error) {
     res.status(500).json(error);
   }
 });
 
-// GET ALL
-
-router.get("/", verifyAdminToken, async (req, res) => {
+// get all
+router.get('/', verifyTokenAndAdmin, async (req, res) => {
   try {
     const carts = await Cart.find();
-    res.send(200).json(carts);
+    res.status(200).json(carts);
   } catch (error) {
     res.status(500).json(error);
   }

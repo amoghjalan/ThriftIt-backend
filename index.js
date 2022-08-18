@@ -1,34 +1,33 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const dotenv = require("dotenv");
-const userRoute = require("./routes/user");
-const authRoute = require("./routes/auth");
-const productRoute = require("./routes/product");
-const cartRoute = require("./routes/cart");
-const orderRoute = require("./routes/order");
-const stripeRoute = require("./routes/stripe");
-const cors = require("cors");
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const userRouter = require('./routes/user');
+const authRouter = require('./routes/auth');
+const productRouter = require('./routes/product');
+const cartRouter = require('./routes/cart');
+const orderRouter = require('./routes/order');
+const stripeRouter = require('./routes/stripe');
+
+require('dotenv').config();
 
 const app = express();
-dotenv.config();
 
-mongoose
-  .connect(process.env.MONGO_URL, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  })
-  .then(() => console.log("Mongoose connection Successful!"))
-  .catch(err => console.error(err));
-
-app.use(cors());
 app.use(express.json());
-app.use("./api/auth", authRoute);
-app.use("./api/users", userRoute);
-app.use("./api/products", productRoute);
-app.use("./api/carts", cartRoute);
-app.use("./api/orders", orderRoute);
-app.use("./api/checkout", stripeRoute);
+app.use(cors());
 
-app.listen(process.env.port || 5000, () => {
-  console.log("Backend Server is running");
+//mongodb
+mongoose
+  .connect(process.env.MONGO_URL)
+  .then(() => console.log('Db connection established'))
+  .catch((err) => console.error(err));
+
+app.use('/api/users', userRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/products', productRouter);
+app.use('/api/carts', cartRouter);
+app.use('/api/orders', orderRouter);
+app.use('/api/checkout', stripeRouter);
+
+app.listen(process.env.PORT || 5000, () => {
+  console.log('server is running');
 });
